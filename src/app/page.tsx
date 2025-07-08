@@ -20,7 +20,6 @@ const EXPORT_PLATFORMS = ["Twitter", "All"];
 function getMonthMatrix(year: number, month: number) {
   const matrix: (Date | null)[][] = [];
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
   const current = new Date(year, month, 1 - firstDay.getDay());
   for (let week = 0; week < 6; week++) {
     const weekArr: (Date | null)[] = [];
