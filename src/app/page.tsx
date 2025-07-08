@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from "react";
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import { DndContext, useDraggable, useDroppable, DragStartEvent, DragEndEvent } from "@dnd-kit/core";
 import VariationCard from "../components/VariationCard";
 import { getSupabaseClient } from "../utils/supabaseClient";
 import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useUser, useAuth } from '@clerk/nextjs';
@@ -21,7 +21,7 @@ function getMonthMatrix(year: number, month: number) {
   const matrix: (Date | null)[][] = [];
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  let current = new Date(year, month, 1 - firstDay.getDay());
+  const current = new Date(year, month, 1 - firstDay.getDay());
   for (let week = 0; week < 6; week++) {
     const weekArr: (Date | null)[] = [];
     for (let day = 0; day < 7; day++) {
@@ -140,8 +140,7 @@ export default function Home() {
       }
     }
     fetchScheduled();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, calendarMonth, calendarYear, selectedDate, user]);
+  }, [view, calendarMonth, calendarYear, selectedDate, user, getToken]);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -175,7 +174,6 @@ export default function Home() {
   //   };
   //   testInsert();
     // Only run once for debugging
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,7 +195,7 @@ export default function Home() {
       } else {
         setError(data.error || "Failed to generate variations.");
       }
-    } catch (err) {
+    } catch (error) {
       setError("Failed to generate variations.");
     } finally {
       setLoading(false);
@@ -217,49 +215,28 @@ export default function Home() {
     setCalendarYear(today.getFullYear());
   };
 
-  const handleDragStart = (event: any) => {
-    setDraggedVariation(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggedVariation(String(event.active.id));
   };
 
-  const handleDragEnd = useCallback(async (event: any) => {
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { over } = event;
-    if (over && draggedVariation && over.id.startsWith("day-") && user) {
-      const dateStr = over.id.replace("day-", "");
+    if (over && draggedVariation && String(over.id).startsWith("day-") && user) {
+      const dateStr = String(over.id).replace("day-", "");
       const variationIdx = parseInt(draggedVariation.replace("variation-", ""), 10);
       if (!isNaN(variationIdx)) {
         const content = variations[variationIdx];
         setSaving(true);
         setSaveError(null);
-        
         try {
-          console.log('User ID:', user.id);
-          console.log('Getting Clerk token...');
           const token = await getToken({ template: 'supabase' });
-          console.log('Token received:', token ? 'Yes' : 'No');
-          console.log('Token preview:', token ? `${token.substring(0, 20)}...` : 'No token');
-          
           const supabase = getSupabaseClient(token || undefined);
-          console.log('Supabase client:', supabase);
-          console.log('user', user);
-          console.log('Inserting data:', { date: dateStr, content, platform: "All", user_id: clerkUserId });
-          
-          const {
-            data: { session },
-          } = await supabase.auth.getSession()
-          console.log('session', session);
-          console.log('Session access_token:', session?.access_token);
-
           const { data, error } = await supabase.from("scheduled_content").insert([
             { date: dateStr, content, platform: "All", user_id: clerkUserId, title: "test" }
           ]).select();
-          
-          console.log('Supabase response:', { data, error });
-          
           if (error) {
-            console.error('Supabase error details:', error);
             setSaveError("Failed to save to Supabase: " + error.message);
           } else if (data && data[0]) {
-            console.log('Successfully saved:', data[0]);
             setScheduled((prev) => {
               const next = { ...prev };
               if (!next[dateStr]) next[dateStr] = [];
@@ -268,7 +245,6 @@ export default function Home() {
             });
           }
         } catch (err) {
-          console.error('Error in handleDragEnd:', err);
           setSaveError("Unexpected error: " + (err as Error).message);
         } finally {
           setSaving(false);
@@ -276,7 +252,7 @@ export default function Home() {
       }
     }
     setDraggedVariation(null);
-  }, [user, draggedVariation, variations, clerkUserId]);
+  }, [user, draggedVariation, variations, clerkUserId, getToken]);
 
   // Navigation logic for each view
   const handlePrev = () => {
@@ -328,7 +304,7 @@ export default function Home() {
   };
 
   function getExportRows() {
-    let items: { date: string; content: string }[] = [];
+    const items: { date: string; content: string }[] = [];
     if (view === "Month") {
       monthMatrix.flat().forEach(date => {
         if (date) {

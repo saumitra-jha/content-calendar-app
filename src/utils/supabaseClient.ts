@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 
 export function getSupabaseClient(token?: string) {
-  const options: any = {
+  const options: Record<string, unknown> = {
     auth: {
      // autoRefreshToken: false,
       // persistSession: true
