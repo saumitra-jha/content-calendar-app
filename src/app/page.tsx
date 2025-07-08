@@ -139,7 +139,7 @@ export default function Home() {
       if (isSignedIn) {
         const token = await getToken({ template: 'supabase' });
         if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
+          // const payload = JSON.parse(atob(token.split('.')[1]));
           // console.log("Decoded JWT payload:", payload);
         }
       }
