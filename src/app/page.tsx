@@ -462,7 +462,7 @@ export default function Home() {
           </button>
         </div>
         <div className="grid grid-cols-7 gap-2 bg-white/80 p-4 rounded-2xl shadow-lg border border-purple-100">
-          {weekDates.map((date, idx) => {
+          {weekDates.map((date) => {
             const dateStr = date.toISOString().slice(0, 10);
             const isToday = date.toDateString() === today.toDateString();
             return (
